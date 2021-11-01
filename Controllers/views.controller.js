@@ -13,6 +13,7 @@ exports.tour = catchAsync(async (req, res, next) => {
     .findOne({ slug: req.params.slug })
     .populate("reviews");
   res.status(200).render("tour", {
+    title: `${tour.name} Tour`,
     tour,
   });
 });
