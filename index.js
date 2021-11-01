@@ -56,7 +56,7 @@ app.all("*", (req, res, next) => {
 
 app.use(errorController);
 
-port = 3004 || process.env.PORT;
+port = process.env.PORT || 3004;
 
 mongoose
   .connect(process.env.DB, {
