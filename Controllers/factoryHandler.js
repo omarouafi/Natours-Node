@@ -51,8 +51,6 @@ exports.createDoc = (Model) =>
 
 exports.getDoc = (Model, populate) =>
   catchAsync(async (req, res, next) => {
-    //related to reviews
-
     let doc = populate
       ? Model.findById(req.params.id).populate(populate)
       : Model.findById(req.params.id);
