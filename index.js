@@ -65,7 +65,7 @@ mongoose
     useCreateIndex: true,
     useFindAndModify: false,
   })
-  .then((data) => console.log("connected"));
+  .then(() => console.log("connected"));
 
 const server = app.listen(port, () => {
   console.log("server started");
