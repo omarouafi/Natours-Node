@@ -96,3 +96,5 @@ block content
            button.btn.btn--green.span-all-rows#checkout-btn(data-set=`${tour.id}`) Book tour now!
           else 
            a.btn.btn--green.span-all-rows(href="/login") Login !
+           fb:login-button(scope="public_profile,email" onlogin="checkLoginState();")
+
