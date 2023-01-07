@@ -3,6 +3,7 @@ block content
  main.main
   .login-form
     h2.heading-secondary.ma-bt-lg Log into your account
+   
     form.form#loginform
       .form__group
         label.form__label(for='email') Email address
@@ -12,5 +13,4 @@ block content
         input#password.form__input(type='password', placeholder='••••••••', required, minlength='8')
       .form__group
         button.btn.btn--green Login
-        fb:login-button(scope="public_profile,email" onlogin="checkLoginState();")
-    
+        a.btn.btn--green(href="/api/v1/users/auth/google/login", style="margin-left:10px;") Continue With Google    

@@ -7,6 +7,9 @@ const crypto = require("crypto");
 const sharp = require("sharp");
 const sendE = require("../utils/email");
 const multer = require("multer");
+const axios = require("axios");
+const queryString = require("querystring");
+const NodeGoogleLogin = require("node-google-login");
 
 const sendUser = (res, user, code) => {
   const token = jwt.sign({ id: user.id }, process.env.token);
@@ -197,7 +200,10 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   const { name, email } = req.body;
   let filteredBody = { name, email };
   if (req.file) {
-    filteredBody = { ...filteredBody, photo: req.file.filename };
+    filteredBody = {
+      ...filteredBody,
+      photo: `/img/users/${req.file.filename}`,
+    };
   }
   const id = req.user.id;
 
@@ -248,4 +254,99 @@ exports.logout = catchAsync(async (req, res, next) => {
     status: "success",
     message: "logged out",
   });
+});
+
+exports.handleFacebookLogin = catchAsync(async (req, res, next) => {
+  const params = queryString.stringify({
+    client_id: process.env.CLIENT_ID,
+    redirect_uri: `https://${req.get("host")}/api/v1/users/auth/facebook`,
+    scope: ["email"].join(","),
+    response_type: "code",
+    auth_type: "rerequest",
+    display: "popup",
+  });
+
+  let url = `https://www.facebook.com/v4.0/dialog/oauth?${params}`;
+  return res.redirect(url);
+});
+exports.handleFacebookLoginCallBack = catchAsync(async (req, res, next) => {
+  const data = await axios(
+    `https://graph.facebook.com/v4.0/oauth/access_token?client_id=${
+      process.env.CLIENT_ID
+    }&client_secret=${process.env.CLIENT_SECRET}&code=${
+      req.query.code
+    }&redirect_uri=https://${req.get("host")}/api/v1/users/auth/facebook`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  res.status(200).json(data);
+});
+
+exports.handleGoogleLogin = catchAsync(async (req, res, next) => {
+  const google_redirect_uri = `https://${req.get(
+    "host"
+  )}/api/v1/users/auth/google`;
+  const googleConfig = {
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    redirectURL: google_redirect_uri,
+    defaultScope: [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile",
+    ],
+  };
+  const googleLogin = new NodeGoogleLogin(googleConfig);
+
+  let url = googleLogin.generateAuthUrl();
+
+  return res.redirect(url);
+});
+exports.handleGoogleLoginCallBack = catchAsync(async (req, res, next) => {
+  const google_redirect_uri = `https://${req.get(
+    "host"
+  )}/api/v1/users/auth/google`;
+  const googleConfig = {
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    redirectURL: google_redirect_uri,
+    defaultScope: [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile",
+    ],
+  };
+
+  const googleLogin = new NodeGoogleLogin(googleConfig);
+
+  const google_account = await googleLogin.getUserProfile(req.query.code);
+
+  const user_exists = await User.findOne({ email: google_account.user.email });
+  if (user_exists) {
+    const token = jwt.sign({ id: user_exists.id }, process.env.token);
+    res.cookie("jwt", token, {
+      secure: false,
+    });
+  } else {
+    const creds = google_account.user;
+    const password = crypto.randomBytes(8).toString("hex");
+    const passwordConfirm = password;
+    const user = await User.create({
+      email: creds.email,
+      name: creds.name,
+      role: "user",
+      active: true,
+      photo: creds.picture,
+      password,
+      passwordConfirm,
+    });
+    const token = jwt.sign({ id: user.id }, process.env.token);
+    res.cookie("jwt", token, {
+      secure: false,
+    });
+  }
+  return res.redirect("/");
 });

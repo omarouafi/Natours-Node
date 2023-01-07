@@ -65,7 +65,10 @@ mongoose
     useCreateIndex: true,
     useFindAndModify: false,
   })
-  .then(() => console.log("connected"));
+  .then(() => console.log("connected"))
+  .catch((e) => {
+    console.log(e.message);
+  });
 
 const server = app.listen(port, () => {
   console.log("server started");
